@@ -1,53 +1,99 @@
-# Rules 
-#   each cell 2 possible states, life of death 
-#   8 neighbours 
-#    - any life cell < 2 neighbours dies 
-#    - any life cell > 3 neighbours dies
-#    - any live cell with 2 or 3 neighbours lives to next generation
-#    - any dead cell with exactly 3 live neighbours becomes a live cell
-# first generation: apply pattern
-# 
-
-### EXAMPLE ##########################################################################################################
-# WRITE YOUR OWN TESTS, OF COURSE
-# test-driven development is the best, this is just to show you how it should work (if it's not clear from rules)
-# Plus varying parameters on initialization allows you to do cooler things, like play with different sizes, seeds, etc.
-#######################################################################################################################
-
-
 require File.join(File.dirname(__FILE__), 'game_of_life')
 require 'rubygems'
-require 'test/unit'
+require 'spec'
+require 'spec/autorun'
 
-class GameOfLifeTest < Test::Unit::TestCase
+describe GameOfLife do
 
-  def setup
+  before(:each) do
     @game = GameOfLife.new(3)
   end
 
-  def test_should_kill_with_no_neighbours
-    @game.state = [[1,0,0],[0,0,0],[0,0,0]]
-    after = @game.evolve
-    assert_equal after[0][0], 0
+  it "returns the board state after evolving" do
+    empty_board = [ [0,0,0], [0,0,0], [0,0,0] ]
+    @game.state = empty_board
+    @game.evolve.should == empty_board
+  end
+  
+  it "kills a cell if it has no live neighbours" do
+    @game.state = [ [1,0,0], [0,0,0], [0,0,0] ]
+    @game.evolve
+    @game.state[0][0].should be_dead
+    @game.should be_extinct
+  end
+  
+  it "kills a cell if it only has one live neighbour" do
+    @game.state = [ [0,0,0], [1,0,0], [1,0,0] ]
+    @game.evolve
+    @game.state[1][0].should be_dead
+    @game.state[2][0].should be_dead
+    @game.should be_extinct
+  end
+  
+  it "kills a cell if surrounding area is overpopulated" do
+    @game.state = [ [1,1,1], [1,1,1], [1,1,1] ]
+    @game.evolve
+    @game.should be_extinct
+  end
+  
+  it "births a new cell if it is surrounded by exactly 3 neighbours" do
+    @game.state = [ [1,0,0], [1,1,0], [0,0,0] ]
+    @game.evolve
+    @game.state.should == [ [1,1,1], [1,1,1], [1,1,1] ]
   end
 
-  def test_should_kill_with_just_one_neighbour
-    @game.state = [[0,0,0],[1,0,0],[1,0,0]]
-    after = @game.evolve
-    assert_equal after[1][0], 0
-    assert_equal after[2][0], 0
+  it "maintains population if it is surrounded by 2 or 3 neighbours" do
+    @game.state = [ [0,1,1], [1,0,0], [1,0,0] ]
+    lambda {
+      @game.evolve
+    }.should_not change(@game, :state)
   end
-
-  def test_should_kill_with_more_than_3_neighbours
-    @game.state = [[1,1,1],[1,1,1],[1,1,1]]
-    after = @game.evolve
-    assert_equal after, [[0,0,0],[0,0,0],[0,0,0]]
+  
+  it "expands to a 5x5 matrix" do
+    @game = GameOfLife.new(5)
+    @game.state = [ [0,1,1,0,0], [0,1,0,0,1], [1,1,0,0,1], [1,1,0,1,0], [1,1,0,0,1] ]
+    @game.evolve
+    @game.state.should == [ [0,0,1,1,1], [0,0,0,1,1], [0,0,0,1,0], [0,0,0,1,0], [0,0,0,1,1] ]
   end
-
-  def test_should_give_birth_if_3_neighbours
-    @game.state = [[1,0,0],[1,1,0],[0,0,0]]
-    after = @game.evolve
-    assert_equal after, [[1,1,1],[1,1,1],[1,1,1]]
+  
+  it "expands to a 15x15 matrix" do
+    @game = GameOfLife.new(15)
+    # this test data is correct, I promise :)
+    @game.state = [
+      [1,0,0,1,0,1,0,1,1,1,0,1,0,1,1],
+      [1,1,0,1,1,1,1,0,1,1,1,1,1,1,0],
+      [0,0,0,0,1,1,0,0,1,0,1,1,0,0,0],
+      [0,1,1,0,0,0,0,1,0,0,0,1,1,0,1],
+      [0,1,1,0,1,1,1,1,0,0,1,0,0,1,1],
+      [1,0,1,1,0,0,0,0,1,1,0,0,1,1,1],
+      [1,0,0,0,0,0,0,1,0,0,0,1,0,1,0],
+      [0,0,0,0,0,0,0,0,1,1,1,1,0,0,1],
+      [1,0,1,0,1,1,0,0,0,0,1,0,0,0,1],
+      [1,1,1,1,0,1,0,1,0,1,1,1,1,1,0],
+      [1,0,1,0,0,0,0,1,1,0,0,1,0,1,0],
+      [1,1,0,0,0,0,0,1,0,0,1,0,1,0,1],
+      [1,0,1,0,1,0,1,1,1,0,1,0,1,1,1],
+      [0,1,0,1,0,1,0,1,1,0,1,0,1,1,1],
+      [0,1,0,0,1,0,0,0,0,0,1,1,0,1,0]
+    ]
+    @game.evolve
+    @game.state.should == [
+      [0,0,0,1,0,0,0,1,0,0,0,0,0,0,0],
+      [1,1,1,1,0,0,0,0,0,0,0,0,0,1,0],
+      [0,0,0,0,0,0,0,0,1,0,0,0,0,0,1],
+      [0,1,1,0,0,0,0,1,1,1,0,0,1,0,1],
+      [0,0,0,0,1,1,1,1,0,1,1,0,0,0,0],
+      [0,0,1,1,1,1,0,0,1,1,1,1,0,0,0],
+      [1,1,0,0,0,0,0,1,0,0,0,1,0,0,0],
+      [0,1,0,0,0,0,0,0,1,1,0,1,1,1,0],
+      [0,0,1,0,1,1,1,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,1,0,1,0,1,0,0,0,1,0],
+      [0,0,0,1,0,0,0,1,0,0,0,0,0,0,0],
+      [0,0,1,1,0,0,0,0,0,0,1,0,0,0,0],
+      [0,0,1,1,1,1,0,0,0,0,1,0,0,0,0],
+      [0,1,0,1,0,1,0,0,1,0,1,0,0,0,0],
+      [0,1,0,1,0,1,0,0,0,0,0,0,0,0,0]
+    ]
   end
-
+  
 end
