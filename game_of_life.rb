@@ -5,7 +5,7 @@
 #
 
 class GameOfLife
-  attr_accessor :state
+  attr_accessor :state, :simulation, :size
   
   def initialize(size = 3)
     @size = size
@@ -116,6 +116,7 @@ class GameOfLife
     end
   
     @state = new_state
+    @simulation.update(self) if @simulation
   end
   
   def extinct?
